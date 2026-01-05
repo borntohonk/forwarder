@@ -37,16 +37,25 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
-TARGET		:=	hbl
+TARGET		:=	main
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
-#ROMFS	:=	romfs
-APP_VERSION	:=	2.4.5
+OUTDIR      :=  out/forwarder_source
+FORWARDER_SOURCE_EXEFS_DIR := forwarder_exefs
+FORWARDER_SOURCE_CONTROL_DIR := forwarder_control
+FORWARDER_SOURCE_ICON_DIR := forwarder_icon
+CONFIG_JSON :=  forwarder_source.json
+
+APP_TITLE := Tinfoil
+APP_AUTHOR := blawar
+APP_VERSION := 21.1.0
+APP_TITLEID := 050000BADDAD0000
+TINFOIL_APP_SUB_VERSION := [v0]
 
 ifeq ($(RELEASE),)
-	APP_VERSION	:=	$(APP_VERSION)-$(shell git describe --dirty --always)
+	APP_VERSION	:=	$(APP_VERSION)$(TINFOIL_APP_SUB_VERSION)
 endif
 
 #---------------------------------------------------------------------------------
@@ -80,7 +89,7 @@ LIBDIRS	:= $(PORTLIBS) $(LIBNX)
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
-export OUTPUT	:=	$(CURDIR)/$(TARGET)
+export OUTPUT	:=	$(CURDIR)/$(OUTDIR)/$(TARGET)
 export TOPDIR	:=	$(CURDIR)
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
@@ -118,6 +127,8 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
+#export BUILD_EXEFS_SRC := $(TOPDIR)/$(EXEFS_SRC)
+
 ifeq ($(strip $(CONFIG_JSON)),)
 	jsons := $(wildcard *.json)
 	ifneq (,$(findstring $(TARGET).json,$(jsons)))
@@ -149,7 +160,7 @@ ifeq ($(strip $(NO_ICON)),)
 endif
 
 ifeq ($(strip $(NO_NACP)),)
-	export NROFLAGS += --nacp=$(CURDIR)/$(TARGET).nacp
+	export NROFLAGS += --nacp=$(CURDIR)/$(OUTDIR)/$(TARGET).nacp
 endif
 
 ifneq ($(APP_TITLEID),)
@@ -167,7 +178,19 @@ all: $(BUILD)
 
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
+	@[ -d $(CURDIR)/$(OUTDIR) ] || mkdir -p $(CURDIR)/$(OUTDIR)
+	@mkdir -p $(CURDIR)/$(FORWARDER_SOURCE_EXEFS_DIR)
+	@mkdir -p $(CURDIR)/$(FORWARDER_SOURCE_CONTROL_DIR)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+	@cp $(OUTDIR)/main.npdm $(FORWARDER_SOURCE_EXEFS_DIR)/main.npdm
+#
+#
+#	@cp $(OUTDIR)/main.nso $(FORWARDER_SOURCE_EXEFS_DIR)/main
+#   replace with tinfoil binary
+#
+#
+	@cp $(OUTDIR)/main.nacp $(FORWARDER_SOURCE_CONTROL_DIR)/control.nacp
+	@cp $(FORWARDER_SOURCE_ICON_DIR)/icon_AmericanEnglish.dat $(FORWARDER_SOURCE_CONTROL_DIR)/icon_AmericanEnglish.dat
 
 #---------------------------------------------------------------------------------
 clean:
@@ -177,6 +200,7 @@ ifeq ($(strip $(APP_JSON)),)
 else
 	@rm -fr $(BUILD) $(TARGET).nsp $(TARGET).nso $(TARGET).npdm $(TARGET).elf
 endif
+	@rm -fr $(CURDIR)/out $(CURDIR)/$(FORWARDER_SOURCE_EXEFS_DIR) $(CURDIR)/$(FORWARDER_SOURCE_CONTROL_DIR)
 
 
 #---------------------------------------------------------------------------------
@@ -204,7 +228,7 @@ all	:	$(OUTPUT).nsp
 
 $(OUTPUT).nsp	:	$(OUTPUT).nso $(OUTPUT).npdm
 
-$(OUTPUT).nso	:	$(OUTPUT).elf
+$(OUTPUT).nso	:	$(OUTPUT).elf $(OUTPUT).nacp
 
 endif
 

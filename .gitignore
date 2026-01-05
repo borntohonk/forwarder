@@ -6,4 +6,7 @@ build/
 *.pfs0
 *.db
 *.zip
+*.nacp
 *~
+forwarder_exefs/**
+forwarder_control/**
